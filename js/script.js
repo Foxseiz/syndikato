@@ -1,11 +1,51 @@
-// Update this with your NEW deployment URL!
+// ==================== CONFIG ====================
+// PASTE YOUR NEW GOOGLE SCRIPT URL HERE
 const BACKEND_URL = "https://script.google.com/macros/s/AKfycbyUzaHedsrJI6agUrIafHOqJZoXO6f6mLDJUxnieulyiRbpUyKqC566Ceihv1vQftDiIQ/exec"; 
 const PASSWORD = "syndikato-ph";
 
 let allRows = [];
 let currentRow = null;
 
-// ==================== LOGIN ====================
+// ==================== CORE API FUNCTIONS ====================
+
+// CORS FIX: Sending requests without specific headers prevents the "Preflight" check.
+async function sendAction(payload) {
+  try {
+    const res = await fetch(BACKEND_URL, {
+      method: "POST",
+      // IMPORTANT: No headers object here! 
+      // This sends data as text/plain, bypassing the CORS block.
+      body: JSON.stringify(payload)
+    });
+    return await res.json();
+  } catch (err) {
+    console.error("Action Error:", err);
+    alert("Operation failed. Check console.");
+    return { error: err.message };
+  }
+}
+
+// Uses GET for loading (faster/safer for read-only)
+async function loadAllRows() {
+  try {
+    const res = await fetch(BACKEND_URL); // Defaults to GET
+    const data = await res.json();
+
+    if (data.error) throw new Error(data.error);
+
+    console.log("Fetched data:", data);
+    allRows = data;
+    populateSelect();
+    clearForm();
+    currentRow = null;
+  } catch (err) {
+    console.error("Load Error:", err);
+    alert("Error fetching data. Ensure Deployment access is set to 'Anyone'.");
+  }
+}
+
+// ==================== UI LOGIC ====================
+
 function login() {
   const pw = document.getElementById("password").value;
   if (pw !== PASSWORD) {
@@ -17,75 +57,34 @@ function login() {
   loadAllRows();
 }
 
-// ==================== LOAD ALL ROWS (Now uses GET) ====================
-async function loadAllRows() {
-  try {
-    // GET requests are much simpler for Apps Script
-    const res = await fetch(BACKEND_URL);
-    const data = await res.json();
-    
-    if (data.error) throw new Error(data.error);
-
-    allRows = data;
-    const sel = document.getElementById("ignSelect");
-    sel.innerHTML = "<option value=''>Select IGN</option>";
-    allRows.forEach(r => {
-      if(r.IGN) sel.innerHTML += `<option value="${r.IGN}">${r.IGN}</option>`;
-    });
-
-    clearForm();
-    currentRow = null;
-  } catch (err) {
-    console.error("Fetch Error:", err);
-    alert("Error fetching data: " + err.message);
-  }
-}
-
-// ==================== API HELPER ====================
-// Sending as text/plain avoids CORS preflight "Options" check
-async function sendAction(payload) {
-  const res = await fetch(BACKEND_URL, {
-    method: "POST",
-    mode: "cors", 
-    body: JSON.stringify(payload)
+function populateSelect() {
+  const sel = document.getElementById("ignSelect");
+  sel.innerHTML = "<option value=''>Select IGN</option>";
+  allRows.forEach(r => {
+    // Only add if IGN exists
+    if(r.IGN) sel.innerHTML += `<option value="${r.IGN}">${r.IGN}</option>`;
   });
-  return await res.json();
 }
 
-// ==================== BUTTONS ====================
-async function save() {
-  if (!currentRow) return alert("Select a player first");
-  const res = await sendAction({ action: "updateRow", payload: buildPayload() });
-  if(res.ok) { alert("Saved!"); loadAllRows(); }
-}
-
-async function add() {
-  const res = await sendAction({ action: "addRow", payload: buildPayload() });
-  if(res.ok) { alert("Added!"); loadAllRows(); }
-}
-
-async function remove() {
-  if (!currentRow) return alert("Select a player first");
-  if (!confirm("Are you sure?")) return;
-  const res = await sendAction({ action: "deleteRow", rowNumber: currentRow });
-  if(res.ok) { alert("Deleted!"); loadAllRows(); }
-}
-
-// ==================== FORM HANDLING ====================
 function loadPlayer() {
   const ign = document.getElementById("ignSelect").value;
-  if (!ign) return;
+  if (!ign) {
+    clearForm(); 
+    return;
+  }
 
   const player = allRows.find(r => r.IGN === ign);
   if (!player) return;
 
   currentRow = player._row;
 
-  ["IGN","Rank","Role","Weapon1","Weapon2","Path"].forEach(id => {
-    if (id === "Weapon1") document.getElementById(id).value = player["Weapon 1"] || "";
-    else if (id === "Weapon2") document.getElementById(id).value = player["Weapon 2"] || "";
-    else document.getElementById(id).value = player[id] || "";
-  });
+  // Map sheet columns to HTML IDs
+  document.getElementById("IGN").value = player.IGN || "";
+  document.getElementById("Rank").value = player.Rank || "";
+  document.getElementById("Role").value = player.Role || "";
+  document.getElementById("Weapon1").value = player["Weapon 1"] || "";
+  document.getElementById("Weapon2").value = player["Weapon 2"] || "";
+  document.getElementById("Path").value = player.Path || "";
 }
 
 function buildPayload() {
@@ -103,37 +102,42 @@ function buildPayload() {
 function clearForm() {
   ["IGN","Rank","Role","Weapon1","Weapon2","Path"].forEach(id => document.getElementById(id).value = "");
   document.getElementById("ignSelect").value = "";
+  currentRow = null;
 }
 
-// ==================== BUTTONS ====================
+// ==================== BUTTON ACTIONS ====================
+
 async function save() {
-  if (!currentRow) return alert("Select a player first");
-  await fetch(BACKEND_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action:"updateRow", payload: buildPayload() })
-  });
-  alert("Saved!");
-  loadAllRows();
+  if (!currentRow) return alert("Select a player first to update.");
+  
+  const payload = { action: "updateRow", payload: buildPayload() };
+  const res = await sendAction(payload);
+  
+  if (res.ok) {
+    alert("Updated successfully!");
+    loadAllRows();
+  }
 }
 
 async function add() {
-  await fetch(BACKEND_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action:"addRow", payload: buildPayload() })
-  });
-  alert("Added!");
-  loadAllRows();
+  const payload = { action: "addRow", payload: buildPayload() };
+  const res = await sendAction(payload);
+  
+  if (res.ok) {
+    alert("Added successfully!");
+    loadAllRows();
+  }
 }
 
 async function remove() {
-  if (!currentRow) return alert("Select a player first");
-  await fetch(BACKEND_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action:"deleteRow", rowNumber: currentRow })
-  });
-  alert("Deleted!");
-  loadAllRows();
+  if (!currentRow) return alert("Select a player first to delete.");
+  if (!confirm("Are you sure you want to delete this player?")) return;
+
+  const payload = { action: "deleteRow", rowNumber: currentRow };
+  const res = await sendAction(payload);
+  
+  if (res.ok) {
+    alert("Deleted successfully!");
+    loadAllRows();
+  }
 }
