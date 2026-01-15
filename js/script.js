@@ -1,5 +1,5 @@
-// ==================== CONFIG ====================
-const BACKEND_URL = "https://script.google.com/macros/s/AKfycbyUzaHedsrJI6agUrIafHOqJZoXO6f6mLDJUxnieulyiRbpUyKqC566Ceihv1vQftDiIQ/exec"; // Your Apps Script deployment URL
+// Update this with your NEW deployment URL!
+const BACKEND_URL = "https://script.google.com/macros/s/AKfycbyUzaHedsrJI6agUrIafHOqJZoXO6f6mLDJUxnieulyiRbpUyKqC566Ceihv1vQftDiIQ/exec"; 
 const PASSWORD = "syndikato-ph";
 
 let allRows = [];
@@ -17,31 +17,58 @@ function login() {
   loadAllRows();
 }
 
-// ==================== LOAD ALL ROWS ====================
+// ==================== LOAD ALL ROWS (Now uses GET) ====================
 async function loadAllRows() {
   try {
-    const res = await fetch(BACKEND_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "getAllRows" })
-    });
+    // GET requests are much simpler for Apps Script
+    const res = await fetch(BACKEND_URL);
     const data = await res.json();
-    console.log("Fetched data:", data);
-
-    if (!Array.isArray(data)) return alert("Failed to load sheet data");
+    
+    if (data.error) throw new Error(data.error);
 
     allRows = data;
-
     const sel = document.getElementById("ignSelect");
     sel.innerHTML = "<option value=''>Select IGN</option>";
-    allRows.forEach(r => sel.innerHTML += `<option value="${r.IGN}">${r.IGN}</option>`);
+    allRows.forEach(r => {
+      if(r.IGN) sel.innerHTML += `<option value="${r.IGN}">${r.IGN}</option>`;
+    });
 
     clearForm();
     currentRow = null;
   } catch (err) {
-    console.error(err);
-    alert("Error fetching sheet data");
+    console.error("Fetch Error:", err);
+    alert("Error fetching data: " + err.message);
   }
+}
+
+// ==================== API HELPER ====================
+// Sending as text/plain avoids CORS preflight "Options" check
+async function sendAction(payload) {
+  const res = await fetch(BACKEND_URL, {
+    method: "POST",
+    mode: "cors", 
+    body: JSON.stringify(payload)
+  });
+  return await res.json();
+}
+
+// ==================== BUTTONS ====================
+async function save() {
+  if (!currentRow) return alert("Select a player first");
+  const res = await sendAction({ action: "updateRow", payload: buildPayload() });
+  if(res.ok) { alert("Saved!"); loadAllRows(); }
+}
+
+async function add() {
+  const res = await sendAction({ action: "addRow", payload: buildPayload() });
+  if(res.ok) { alert("Added!"); loadAllRows(); }
+}
+
+async function remove() {
+  if (!currentRow) return alert("Select a player first");
+  if (!confirm("Are you sure?")) return;
+  const res = await sendAction({ action: "deleteRow", rowNumber: currentRow });
+  if(res.ok) { alert("Deleted!"); loadAllRows(); }
 }
 
 // ==================== FORM HANDLING ====================
