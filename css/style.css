@@ -1,0 +1,40 @@
+body {
+  background: #0f172a;
+  color: #e5e7eb;
+  font-family: Arial, sans-serif;
+  padding: 40px;
+}
+
+.card {
+  background: #020617;
+  padding: 20px;
+  border-radius: 12px;
+  max-width: 500px;
+}
+
+input, select, button {
+  width: 100%;
+  margin: 5px 0;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+}
+
+button {
+  background: #38bdf8;
+  color: #020617;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover { opacity: 0.9; }
+
+.hidden { display: none; }
+
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.error { color: #ef4444; }

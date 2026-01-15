@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="card">
+    <h2>Member Editor</h2>
+
+    <div id="loginDiv">
+      <input type="password" id="password" placeholder="Enter password">
+      <button onclick="login()">Enter</button>
+      <p id="loginError" class="error"></p>
+    </div>
+
+    <div id="appDiv" class="hidden">
+      <select id="ignSelect" onchange="loadPlayer()"></select>
+
+      <input id="IGN" placeholder="IGN">
+      <input id="Rank" placeholder="Rank">
+      <input id="Role" placeholder="Role">
+      <input id="Weapon1" placeholder="Weapon 1">
+      <input id="Weapon2" placeholder="Weapon 2">
+      <input id="Path" placeholder="Path">
+
+      <div class="actions">
+        <button onclick="save()">Save</button>
+        <button onclick="add()">Add New</button>
+        <button onclick="remove()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/script.js"></script>
+</body>
+</html>
