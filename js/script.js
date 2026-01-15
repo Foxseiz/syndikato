@@ -1,5 +1,5 @@
 // ==================== CONFIG ====================
-const BACKEND_URL = "https://script.google.com/macros/s/AKfycbxqdnuuSZUGMHyfF8ZiET5cKcNx_s2JYHNnLPaNwb4sxnxQZaccjWvVaF4nrclLEfzI_A/exec"; // Replace with your Apps Script URL
+const BACKEND_URL = "https://script.google.com/macros/s/AKfycbxqdnuuSZUGMHyfF8ZiET5cKcNx_s2JYHNnLPaNwb4sxnxQZaccjWvVaF4nrclLEfzI_A/exec"; // Your Apps Script deployment URL
 const PASSWORD = "syndikato-ph"; // Your password
 
 let allRows = [];
@@ -14,11 +14,10 @@ function login() {
   }
   document.getElementById("loginDiv").classList.add("hidden");
   document.getElementById("appDiv").classList.remove("hidden");
-
   loadAllRows();
 }
 
-// ==================== FETCH ALL ROWS ====================
+// ==================== LOAD ALL ROWS ====================
 async function loadAllRows() {
   try {
     const res = await fetch(BACKEND_URL, {
@@ -27,7 +26,10 @@ async function loadAllRows() {
     });
     const data = await res.json();
 
-    if (!Array.isArray(data)) return alert("Failed to load sheet data");
+    if (!Array.isArray(data)) {
+      console.error("Invalid data", data);
+      return alert("Failed to load sheet data");
+    }
 
     allRows = data;
 
@@ -35,7 +37,6 @@ async function loadAllRows() {
     sel.innerHTML = "<option value=''>Select IGN</option>";
     allRows.forEach(r => sel.innerHTML += `<option value="${r.IGN}">${r.IGN}</option>`);
 
-    // Clear form
     clearForm();
     currentRow = null;
   } catch (err) {
@@ -74,7 +75,7 @@ function buildPayload() {
 }
 
 function clearForm() {
-  ["IGN", "Rank", "Role", "Weapon1", "Weapon2", "Path"].forEach(id => {
+  ["IGN","Rank","Role","Weapon1","Weapon2","Path"].forEach(id => {
     document.getElementById(id).value = "";
   });
   document.getElementById("ignSelect").value = "";
