@@ -1,5 +1,5 @@
 // ==================== CONFIG ====================
-const BACKEND_URL = "https://script.google.com/macros/s/AKfycbxqdnuuSZUGMHyfF8ZiET5cKcNx_s2JYHNnLPaNwb4sxnxQZaccjWvVaF4nrclLEfzI_A/exec"; // Your Apps Script deployment URL
+const BACKEND_URL = "https://script.google.com/macros/s/AKfycbyUzaHedsrJI6agUrIafHOqJZoXO6f6mLDJUxnieulyiRbpUyKqC566Ceihv1vQftDiIQ/exec"; // Your Apps Script deployment URL
 const PASSWORD = "syndikato-ph"; // Your password
 
 let allRows = [];
@@ -25,6 +25,7 @@ async function loadAllRows() {
       body: JSON.stringify({ action: "getAllRows" })
     });
     const data = await res.json();
+    console.log("Fetched data from backend:", data); // <-- add this
 
     if (!Array.isArray(data)) {
       console.error("Invalid data", data);
